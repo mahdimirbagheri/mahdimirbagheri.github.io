@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+        integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>mahdimirbagheri</title>
+</head>
+
+<body>
+    <header>
+        <div class="navber">
+            <div class="logo"><a href="https://mahdimirbagheri.github.io/index.html">mahdimirbagheri</a></div>
+            <ul class="links">
+                <li><a class="home">Home</li></a>
+                <li><a class="handouts">Handouts</li></a>
+                <li><a class="abouts">Abouts</li></a>
+                <li><a class="contact">Contact</li></a>
+            </ul>
+            <a href="" class="action_btn">Educational film</a>
+            <div class="toggle_btn">
+                <i class="fa-solid fa-bars" style="color: #a5e619;;"></i>
+            </div>
+        </div>
+        <div class="dropdown_menu">
+            <li><a class="home">Home</li></a>
+            <li><a class="handouts">Handouts</li></a>
+            <li><a class="abouts">Abouts</li></a>
+            <li><a class="contact">Contact</li></a>
+            <li><a href="" class="action_btn">Educational film</a></li>
+        </div>
+    </header>
+    <main>
+        <section id="Hero">
+            <h1>Hello, World</h1>
+            <p>
+                Lorem, ipsum dolor sit amet consectetur adipisicing elit. <br>
+                Eveniet blanditiis incidunt doloribus iusto architecto enim perspiciatis, <br>
+                vel placeat voluptatem quidem rerum soluta, facere vitae dolores quam labore neque esse odio.
+            </p>
+        </section>
+    </main>
+    <script>
+        const toggleBtn = document.querySelector('.toggle_btn')
+        const toggleBtnIcon = document.querySelector('.toggle_btn i')
+        const dropDownMenu = document.querySelector('.dropdown_menu')
+
+        toggleBtn.onclick = function () {
+            dropDownMenu.classList.toggle('open')
+            const isOpen = dropDownMenu.classList.contains('open')
+
+            toggleBtnIcon.classList = isOpen
+                ? 'fa-solid fa-xmark'
+                : 'fa-solid fa-bars'
+        }
+    </script>
+</body>
+
+</html>
