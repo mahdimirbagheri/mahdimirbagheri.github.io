@@ -168,7 +168,7 @@ body { background: var(--smoky-black); }
 .video{
   width: 100%;
   display: block;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px 20px  20px 20px;
 }
 .sidebar,
 article {
