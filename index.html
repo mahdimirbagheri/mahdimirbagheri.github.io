@@ -28,6 +28,11 @@
 <body>
 
   <!--
+    - #STARS BACKGROUND
+  -->
+  <div class="stars-bg" aria-hidden="true"></div>
+
+  <!--
     - #MAIN
   -->
 
@@ -48,7 +53,7 @@
         <div class="info-content">
           <h1 class="name" title="MahdiMirbagheri">MahdiMirbagheri</h1>
 
-          <p class="title">Co-founder CodersCafe</p>
+          <p class="title"><span id="typewriter" data-typewriter='["Co-founder CodersCafe", "SEO Specialist", "Web Developer", "Python Learner"]'></span></p>
         </div>
 
         <button class="info_more-btn" data-sidebar-btn>
@@ -58,6 +63,11 @@
         </button>
 
       </div>
+
+      <a href="./assets/resume.pdf" download class="resume-download-btn">
+        <ion-icon name="download-outline"></ion-icon>
+        <span>Download Resume</span>
+      </a>
 
       <div class="sidebar-info_more">
 
@@ -206,6 +216,59 @@
             As the founder of Coders Cafe, I have the task of planning and implementing activities, and besides that, I also do website design with WordPress and spend time with Google algorithms.
             I would be happy if you follow me and benefit from my educational videos.
           </p>
+        </section>
+
+
+        <!--
+          - stats
+        -->
+
+        <section class="stats">
+
+          <ul class="stats-list">
+
+            <li class="stats-item">
+              <div class="icon-box">
+                <ion-icon name="briefcase-outline"></ion-icon>
+              </div>
+              <div class="stats-content">
+                <data class="stats-number" data-stats-count="9">0</data>
+                <p class="stats-label">Projects</p>
+              </div>
+            </li>
+
+            <li class="stats-item">
+              <div class="icon-box">
+                <ion-icon name="newspaper-outline"></ion-icon>
+              </div>
+              <div class="stats-content">
+                <data class="stats-number" data-stats-count="6">0</data>
+                <p class="stats-label">Blog Posts</p>
+              </div>
+            </li>
+
+            <li class="stats-item">
+              <div class="icon-box">
+                <ion-icon name="ribbon-outline"></ion-icon>
+              </div>
+              <div class="stats-content">
+                <data class="stats-number" data-stats-count="4">0</data>
+                <p class="stats-label">Services</p>
+              </div>
+            </li>
+
+            <li class="stats-item">
+              <div class="icon-box">
+                <ion-icon name="people-outline"></ion-icon>
+              </div>
+              <div class="stats-content">
+                <data class="stats-number" data-stats-count="3">0</data>
+                <p class="stats-label">Clients</p>
+              </div>
+            </li>
+
+          </ul>
+
         </section>
 
 
@@ -1070,6 +1133,14 @@
 
   </main>
 
+  <!--
+    - #BACK TO TOP
+  -->
+
+  <button class="back-to-top-btn" id="backToTopBtn" aria-label="Back to top">
+    <ion-icon name="chevron-up-outline"></ion-icon>
+  </button>
+
 
 
   <!--
@@ -1082,6 +1153,97 @@
   -->
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+  <!--
+    - extra features: typewriter, stat counters, back to top
+  -->
+  <script>
+    (function () {
+
+      /* typewriter effect */
+      var tw = document.getElementById('typewriter');
+      if (tw) {
+        var words = JSON.parse(tw.getAttribute('data-typewriter') || '[]');
+        var wordIndex = 0, charIndex = 0, deleting = false;
+
+        function tick() {
+          if (!words.length) return;
+          var current = words[wordIndex];
+
+          if (!deleting) {
+            charIndex++;
+            tw.textContent = current.slice(0, charIndex);
+            if (charIndex === current.length) {
+              deleting = true;
+              setTimeout(tick, 1800);
+              return;
+            }
+          } else {
+            charIndex--;
+            tw.textContent = current.slice(0, charIndex);
+            if (charIndex === 0) {
+              deleting = false;
+              wordIndex = (wordIndex + 1) % words.length;
+            }
+          }
+
+          setTimeout(tick, deleting ? 40 : 90);
+        }
+
+        tick();
+      }
+
+      /* stat counters (count up when scrolled into view) */
+      var statNumbers = document.querySelectorAll('[data-stats-count]');
+      var counted = false;
+
+      function animateCounters() {
+        if (counted || !statNumbers.length) return;
+        var statsSection = document.querySelector('.stats');
+        if (!statsSection) return;
+        var rect = statsSection.getBoundingClientRect();
+        if (rect.top > window.innerHeight || rect.bottom < 0) return;
+
+        counted = true;
+        statNumbers.forEach(function (el) {
+          var target = parseInt(el.getAttribute('data-stats-count'), 10) || 0;
+          var current = 0;
+          var step = Math.max(1, Math.ceil(target / 40));
+          var timer = setInterval(function () {
+            current += step;
+            if (current >= target) {
+              current = target;
+              clearInterval(timer);
+            }
+            el.textContent = current;
+          }, 30);
+        });
+      }
+
+      document.addEventListener('scroll', animateCounters, { passive: true });
+      window.addEventListener('resize', animateCounters);
+      animateCounters();
+
+      /* back to top button */
+      var backBtn = document.getElementById('backToTopBtn');
+      if (backBtn) {
+        function toggleBackBtn() {
+          if (window.scrollY > 300) {
+            backBtn.classList.add('show');
+          } else {
+            backBtn.classList.remove('show');
+          }
+        }
+        document.addEventListener('scroll', toggleBackBtn, { passive: true });
+        toggleBackBtn();
+
+        backBtn.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+    })();
+  </script>
 
 </body>
 

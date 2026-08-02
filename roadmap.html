@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نقشه راه سفر 🗺️</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--acc:#ffd32a;--acc2:#ff9f43;--skyT:#04060f;--skyB:#16213e}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:auto}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;background:#04060f;overflow-x:hidden}
+#scroll{height:800vh}
+
+/* ---------- صحنه ---------- */
+#stage{position:fixed;inset:0;overflow:hidden;z-index:0;visibility:hidden}
+#stage.on{visibility:visible}
+#sky{position:absolute;inset:0;background:linear-gradient(var(--skyT),var(--skyB));transition:background .2s}
+#stars{position:absolute;inset:0}
+#celestial{position:absolute;width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fff,#ffd76a 60%,#ffb347);
+  box-shadow:0 0 60px 20px rgba(255,215,106,.45);transform:translate(-50%,-50%)}
+.cloud{position:absolute;background:#fff;border-radius:50%;filter:blur(20px);opacity:.75;animation:drift linear infinite}
+@keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
+#clouds{position:absolute;inset:0}
+#mounts{position:absolute;bottom:0;left:0;width:100%;height:46vh}
+#mounts path{transition:transform .1s linear}
+#fog{position:absolute;bottom:0;left:0;right:0;height:22vh;
+  background:linear-gradient(transparent,rgba(4,6,15,.55))}
+#map{position:absolute;inset:0;width:100%;height:100%}
+#vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55))}
+
+/* ---------- جاده ---------- */
+.road-base{fill:none;stroke:#1c2129;stroke-width:30;stroke-linecap:round;opacity:.55}
+.road-center{fill:none;stroke:rgba(255,255,255,.18);stroke-width:3;stroke-dasharray:14 26;animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-40}}
+.road-glow{fill:none;stroke:var(--acc);stroke-width:34;stroke-linecap:round;opacity:.18;filter:blur(6px);transition:stroke .5s}
+.road-done{fill:none;stroke:#2d333d;stroke-width:30;stroke-linecap:round}
+.road-line{fill:none;stroke:var(--acc);stroke-width:3;stroke-linecap:round;opacity:.9;transition:stroke .5s}
+
+/* ---------- ایستگاه‌ها ---------- */
+.stop .dot{fill:#0e1320;stroke:#fff;stroke-width:2.5;transition:fill .4s}
+.stop .num{fill:#fff;font:700 15px 'Vazirmatn';text-anchor:middle}
+.stop .ring{fill:none;stroke:var(--acc);stroke-width:3;opacity:0;transform-box:fill-box;transform-origin:center}
+.stop.on .dot{fill:var(--acc)}
+.stop.on .num{fill:#111}
+.stop.on .ring{animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+.flag{transform:scale(0);transform-box:fill-box;transform-origin:0% 100%;transition:transform .55s cubic-bezier(.3,1.7,.5,1)}
+.stop.on .flag{transform:scale(1)}
+.flag line{stroke:#fff;stroke-width:3}
+.flag path{fill:var(--acc);transform-box:fill-box;transform-origin:left center;animation:wave 1.3s ease-in-out infinite}
+@keyframes wave{50%{transform:skewY(8deg)}}
+
+/* ---------- ماشین ---------- */
+.wheel{transform-box:fill-box;transform-origin:center}
+#car.moving .wheel{animation:wspin .45s linear infinite}
+@keyframes wspin{to{transform:rotate(360deg)}}
+#beam{opacity:0;transition:opacity .6s}
+
+/* ---------- HUD ---------- */
+#bar{position:fixed;top:0;right:0;left:0;height:4px;background:rgba(255,255,255,.08);z-index:12;opacity:0;transition:opacity .5s}
+#bar.on{opacity:1}
+#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 12px var(--acc);transition:background .5s}
+#hud{position:fixed;top:14px;right:16px;left:16px;z-index:12;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;flex-wrap:wrap;color:#fff;
+  background:rgba(5,8,18,.5);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 18px;
+  opacity:0;pointer-events:none;transform:translateY(-12px);transition:opacity .5s,transform .5s}
+#hud.on{opacity:1;pointer-events:auto;transform:none}
+.h-left{display:flex;align-items:center;gap:10px}
+#hHome{cursor:pointer;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);
+  color:#fff;border-radius:9px;width:30px;height:30px;font-size:.95rem;display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .2s}
+#hHome:hover{background:rgba(255,255,255,.18);transform:scale(1.06)}
+.h-title{font-weight:900;font-size:1rem;text-shadow:0 0 10px rgba(255,211,42,.4)}
+.h-stage{font-weight:700;color:var(--acc);font-size:.95rem;transition:color .5s}
+.h-stats{font-size:.85rem;opacity:.9;display:flex;gap:8px;align-items:center;font-weight:700}
+.sep{opacity:.4}
+
+/* ---------- کارت مرحله ---------- */
+#card{position:fixed;bottom:22px;right:16px;z-index:12;width:min(360px,92vw);
+  display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:16px;
+  background:rgba(5,8,18,.72);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,211,42,.35);box-shadow:0 10px 40px rgba(0,0,0,.5),0 0 30px rgba(255,211,42,.12);
+  transform:translateY(140%);transition:transform .6s cubic-bezier(.2,1.2,.3,1)}
+#card.show{transform:none}
+.c-icon{font-size:2.2rem;filter:drop-shadow(0 0 8px rgba(255,211,42,.5))}
+.c-stage{font-size:.7rem;letter-spacing:.1em;color:var(--acc);font-weight:700}
+.c-title{font-size:1.1rem;font-weight:900;color:#fff;margin:2px 0 4px}
+.c-desc{font-size:.82rem;line-height:1.7;color:rgba(255,255,255,.75)}
+
+/* ---------- راهنما ---------- */
+#hint{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:11;
+  color:#fff;text-align:center;font-size:.85rem;opacity:0;animation:bob 1.6s infinite;transition:opacity .5s}
+#hint span{display:block;font-size:1.6rem;color:var(--acc)}
+@keyframes bob{50%{transform:translate(-50%,8px)}}
+
+/* ---------- پایان ---------- */
+#done{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+  background:rgba(2,3,10,.6);backdrop-filter:blur(4px)}
+#done.on{display:flex}
+#fw{position:absolute;inset:0}
+.d-box{position:relative;text-align:center;color:#fff;padding:40px 50px;border-radius:24px;
+  background:rgba(5,8,18,.7);border:1px solid rgba(255,211,42,.4);box-shadow:0 0 60px rgba(255,211,42,.2)}
+.d-emoji{font-size:4rem;animation:bob2 1.4s infinite}
+@keyframes bob2{50%{transform:translateY(-10px)}}
+.d-box h2{font-size:2rem;font-weight:900;margin:10px 0;text-shadow:0 0 20px var(--acc)}
+.d-box p{opacity:.8;margin-bottom:22px}
+.d-btns{display:flex;gap:10px;justify-content:center}
+#again,#dHome{font-family:inherit;font-weight:700;font-size:.95rem;border-radius:12px;padding:12px 24px;cursor:pointer;transition:transform .2s}
+#again{color:#111;background:var(--acc);border:none;box-shadow:0 0 25px rgba(255,211,42,.5)}
+#again:hover,#dHome:hover{transform:scale(1.06)}
+#dHome{color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25)}
+
+/* =====================================================================
+   صفحه‌ی ورودی: انتخاب گرایش
+   ===================================================================== */
+#landing{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% -10%,#1b2450 0%,#04060f 60%);
+  transition:opacity .6s,visibility .6s}
+#landing.hide{opacity:0;visibility:hidden;pointer-events:none}
+#landing canvas{position:absolute;inset:0;z-index:0}
+.l-head{position:relative;z-index:1;text-align:center;margin-bottom:34px}
+.l-eyebrow{color:var(--acc);font-weight:700;font-size:.8rem;letter-spacing:.15em;margin-bottom:8px}
+.l-head h1{color:#fff;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:900;text-shadow:0 0 30px rgba(255,211,42,.25)}
+.l-head p{color:rgba(255,255,255,.6);margin-top:10px;font-size:.95rem}
+#trackGrid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;max-width:980px;width:100%}
+.tcard{position:relative;cursor:pointer;border-radius:18px;padding:22px 18px;text-align:right;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  transition:transform .25s,border-color .25s,background .25s;overflow:hidden}
+.tcard:hover{transform:translateY(-6px);background:rgba(255,255,255,.07)}
+.tcard:focus-visible{outline:2px solid var(--acc)}
+.tcard i{position:absolute;inset:-40% -20% auto auto;width:120px;height:120px;border-radius:50%;
+  background:var(--tclr);opacity:.18;filter:blur(30px)}
+.t-icon{font-size:2rem;display:block;margin-bottom:10px}
+.t-name{color:#fff;font-weight:900;font-size:1.05rem;margin-bottom:6px}
+.t-desc{color:rgba(255,255,255,.6);font-size:.8rem;line-height:1.6}
+.t-steps{margin-top:12px;font-size:.72rem;color:var(--tclr);font-weight:700}
+.tcard:hover{border-color:var(--tclr)}
+@media(max-width:560px){.h-title{display:none}}
+</style>
+</head>
+<body>
+
+<canvas id="landingBg"></canvas>
+<div id="landing">
+  <div class="l-head">
+    <div class="l-eyebrow">نقشه راه سفر</div>
+    <h1>🗺️ مسیرت رو انتخاب کن</h1>
+    <p>هر گرایش، یه جاده‌ی جداست — با ایستگاه‌ها و مراحل خودش</p>
+  </div>
+  <div id="trackGrid"></div>
+</div>
+
+<div id="stage">
+  <div id="sky"></div>
+  <canvas id="stars"></canvas>
+  <div id="celestial"></div>
+  <div id="clouds">
+    <div class="cloud" style="top:12%;width:220px;height:60px;animation-duration:55s"></div>
+    <div class="cloud" style="top:26%;width:160px;height:46px;animation-duration:75s;animation-delay:-30s"></div>
+    <div class="cloud" style="top:7%;width:280px;height:70px;animation-duration:95s;animation-delay:-60s"></div>
+  </div>
+  <svg id="mounts" viewBox="0 0 1440 400" preserveAspectRatio="none">
+    <path id="m1" fill="#2a2f55" opacity=".55" d="M0 400 L0 220 L180 120 L360 230 L560 90 L780 240 L980 130 L1200 250 L1440 150 L1440 400 Z"/>
+    <path id="m2" fill="#1b2040" opacity=".75" d="M0 400 L0 290 L220 190 L430 300 L640 180 L880 310 L1100 200 L1320 310 L1440 240 L1440 400 Z"/>
+    <path id="m3" fill="#0d1128" d="M0 400 L0 340 L260 260 L520 350 L760 250 L1020 355 L1280 270 L1440 340 L1440 400 Z"/>
+  </svg>
+
+  <svg id="map" viewBox="0 0 1000 1500" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fff7c0" stop-opacity=".7"/>
+        <stop offset="1" stop-color="#fff7c0" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g id="decor"></g>
+    <path id="roadBase" class="road-base"/>
+    <path id="roadCenter" class="road-center"/>
+    <path id="roadGlow" class="road-glow"/>
+    <path id="roadDone" class="road-done"/>
+    <path id="roadLine" class="road-line"/>
+    <g id="stops"></g>
+    <g id="fx"></g>
+    <g id="car">
+      <ellipse cx="0" cy="12" rx="30" ry="8" fill="rgba(0,0,0,.35)"/>
+      <g id="carRot">
+        <polygon id="beam" points="26,-6 110,-30 110,18" fill="url(#lg)"/>
+        <rect x="-26" y="-14" width="52" height="18" rx="7" fill="#ff4757"/>
+        <rect x="-13" y="-25" width="26" height="14" rx="5" fill="#ff6b81"/>
+        <rect x="-9" y="-22" width="18" height="9" rx="3" fill="#dff6ff"/>
+        <circle cx="26" cy="-6" r="3.4" fill="#fff7ae"/>
+        <g class="wheel"><circle cx="-15" cy="5" r="7.5" fill="#151a21"/><line x1="-15" y1="-1" x2="-15" y2="11" stroke="#888" stroke-width="2"/></g>
+        <g class="wheel"><circle cx="15" cy="5" r="7.5" fill="#151a21"/><line x1="15" y1="-1" x2="15" y2="11" stroke="#888" stroke-width="2"/></g>
+      </g>
+    </g>
+  </svg>
+
+  <div id="fog"></div>
+  <div id="vig"></div>
+</div>
+
+<div id="bar"><i></i></div>
+<header id="hud">
+  <div class="h-left">
+    <button id="hHome" title="بازگشت به انتخاب مسیر">⌂</button>
+    <div class="h-title" id="hTitle">🗺️ نقشه راه سفر</div>
+  </div>
+  <div class="h-stage" id="hStage">آغاز سفر</div>
+  <div class="h-stats"><span id="hPct">۰٪</span><span class="sep">·</span><span id="hKm">۰ کیلومتر</span></div>
+</header>
+
+<div id="card">
+  <div class="c-icon" id="cIcon">🚗</div>
+  <div>
+    <div class="c-stage" id="cStage"></div>
+    <h3 class="c-title" id="cTitle"></h3>
+    <p class="c-desc" id="cDesc"></p>
+  </div>
+</div>
+
+<div id="hint">برای حرکت اسکرول کن<span>⌄</span></div>
+
+<div id="done">
+  <canvas id="fw"></canvas>
+  <div class="d-box">
+    <div class="d-emoji">🏁</div>
+    <h2>سفر کامل شد!</h2>
+    <p id="dStats"></p>
+    <div class="d-btns">
+      <button id="again">یه دور دیگه ↻</button>
+      <button id="dHome">مسیر دیگه</button>
+    </div>
+  </div>
+</div>
+
+<div id="scroll"></div>
+
+<script>
+/* =====================================================================
+   بخش تنظیمات — هر گرایشی که می‌خوای اینجا اضافه یا ویرایش کن
+   =====================================================================
+   هر آیتم PRESETS شامل:
+     title : عنوان بالای صفحه‌ی سفر
+     short : عنوان کوتاه که روی کارتِ صفحه‌ی انتخاب نشون داده می‌شه
+     desc  : توضیح کوتاه کارت
+     color : رنگ اصلی تم این گرایش (هگز) — روی جاده، نور و HUD اعمال می‌شه
+     icon  : ایموجی کارت
+     km    : کل «کیلومتر» نمادین مسیر (فقط تزئینی)
+     stops : آرایه‌ی مراحل. هر مرحله:
+        f     -> موقعیت روی جاده، بین ۰ (شروع) و ۱ (پایان)
+        icon  -> ایموجی مرحله
+        title -> عنوان مرحله
+        desc  -> توضیح کوتاه مرحله
+     تعداد stops هر گرایش آزاده (۴ تا ۱۰ پیشنهاد می‌شه)، فقط f ها رو
+     با فاصله‌ی منطقی بین ۰ و ۱ پخش کن.
+   برای گرایش جدید: یک کلید تازه به PRESETS اضافه کن و همین ساختار رو
+   کپی/ویرایش کن. خودش توی صفحه‌ی انتخاب ظاهر می‌شه.
+   ===================================================================== */
+const PRESETS = {
+
+  frontend: {
+    short:'Front-End', icon:'🎨', color:'#ffd32a',
+    desc:'رابط کاربری، تعامل و تجربه‌ی کاربر',
+    title:'🗺️ نقشه راه Front-End', km:1200,
+    stops:[
+      {f:.03,icon:'🌐',title:'HTML & CSS',desc:'ساخت ساختار و ظاهر پایه‌ی صفحات وب.'},
+      {f:.18,icon:'📜',title:'جاوااسکریپت',desc:'منطق و تعامل رو به صفحه اضافه کن.'},
+      {f:.35,icon:'🧩',title:'Git و ابزارهای توسعه',desc:'کنترل نسخه و کار تیمی رو یاد بگیر.'},
+      {f:.52,icon:'⚛️',title:'فریمورک (React/Vue)',desc:'کامپوننت‌محور فکر کن و بساز.'},
+      {f:.68,icon:'📱',title:'ریسپانسیو و دسترسی‌پذیری',desc:'برای همه‌ی دستگاه‌ها و کاربرها بساز.'},
+      {f:.84,icon:'⚡',title:'بهینه‌سازی و عملکرد',desc:'سریع‌تر، سبک‌تر، حرفه‌ای‌تر.'},
+      {f:.98,icon:'🚀',title:'استقرار و پروژه‌ی واقعی',desc:'کارت رو منتشر کن و به دنیا نشون بده.'},
+    ]
+  },
+
+  backend: {
+    short:'Back-End', icon:'🗄️', color:'#4fd1c5',
+    desc:'سرور، دیتابیس و منطق سمت سرور',
+    title:'🗺️ نقشه راه Back-End', km:1500,
+    stops:[
+      {f:.03,icon:'💻',title:'یک زبان برنامه‌نویسی',desc:'مثل Python، Node.js یا Go رو محکم کن.'},
+      {f:.18,icon:'🗄️',title:'پایگاه داده',desc:'SQL و NoSQL؛ مدل‌سازی داده رو یاد بگیر.'},
+      {f:.35,icon:'🔌',title:'طراحی API',desc:'REST یا GraphQL برای ارتباط سرویس‌ها.'},
+      {f:.52,icon:'🔐',title:'احراز هویت و امنیت',desc:'کاربرها و داده‌ها رو امن نگه دار.'},
+      {f:.68,icon:'🐳',title:'داکر و کانتینرها',desc:'محیط اجرا رو قابل‌حمل و پایدار کن.'},
+      {f:.84,icon:'📈',title:'مقیاس‌پذیری و کش',desc:'برای ترافیک بالا آماده باش.'},
+      {f:.98,icon:'☁️',title:'استقرار در فضای ابری',desc:'سرویس رو زنده و در دسترس کن.'},
+    ]
+  },
+
+  datascience: {
+    short:'علم داده', icon:'📊', color:'#7c9dff',
+    desc:'تحلیل، آمار و استخراج بینش از داده',
+    title:'🗺️ نقشه راه علم داده', km:1400,
+    stops:[
+      {f:.04,icon:'🐍',title:'پایتون و کتابخانه‌ها',desc:'NumPy و Pandas رو دستت بیاد.'},
+      {f:.20,icon:'📊',title:'آمار و احتمال',desc:'زبان داده رو یاد بگیر.'},
+      {f:.38,icon:'🧹',title:'پاک‌سازی و آماده‌سازی داده',desc:'داده‌ی خام رو قابل‌استفاده کن.'},
+      {f:.56,icon:'📈',title:'تجسم داده',desc:'داستان داده رو با نمودار روایت کن.'},
+      {f:.74,icon:'🤖',title:'یادگیری ماشین',desc:'مدل‌های پیش‌بینی بساز.'},
+      {f:.98,icon:'🏆',title:'پروژه و ارائه‌ی نتایج',desc:'یافته‌هات رو به تصمیم تبدیل کن.'},
+    ]
+  },
+
+  aiml: {
+    short:'هوش مصنوعی', icon:'🧠', color:'#c084fc',
+    desc:'یادگیری عمیق و مدل‌های هوشمند',
+    title:'🗺️ نقشه راه هوش مصنوعی', km:1600,
+    stops:[
+      {f:.03,icon:'📐',title:'ریاضی پایه',desc:'جبر خطی، مشتق و احتمال.'},
+      {f:.18,icon:'🐍',title:'پایتون علمی',desc:'NumPy، Pandas، Matplotlib.'},
+      {f:.34,icon:'🧠',title:'یادگیری ماشین کلاسیک',desc:'رگرسیون، دسته‌بندی، خوشه‌بندی.'},
+      {f:.50,icon:'🔥',title:'یادگیری عمیق',desc:'شبکه‌های عصبی با PyTorch یا TensorFlow.'},
+      {f:.66,icon:'👁️',title:'بینایی ماشین یا NLP',desc:'یک حوزه‌ی تخصصی رو عمیق برو.'},
+      {f:.82,icon:'🧪',title:'آموزش مدل و ارزیابی',desc:'مدل‌ها رو تیون و مقایسه کن.'},
+      {f:.98,icon:'🚀',title:'استقرار مدل',desc:'مدل رو به یک محصول واقعی تبدیل کن.'},
+    ]
+  },
+
+  mobile: {
+    short:'موبایل', icon:'📱', color:'#ff8fab',
+    desc:'اپلیکیشن‌های iOS و اندروید',
+    title:'🗺️ نقشه راه توسعه‌ی موبایل', km:1100,
+    stops:[
+      {f:.04,icon:'📱',title:'انتخاب پلتفرم',desc:'Native، Flutter یا React Native.'},
+      {f:.22,icon:'🎨',title:'رابط کاربری موبایل',desc:'طراحی صفحات و ناوبری.'},
+      {f:.40,icon:'💾',title:'ذخیره‌سازی محلی',desc:'دیتابیس و کش روی دستگاه.'},
+      {f:.58,icon:'🌐',title:'اتصال به سرور',desc:'کار با API و همگام‌سازی داده.'},
+      {f:.76,icon:'🔔',title:'نوتیفیکیشن و سنسورها',desc:'از امکانات سخت‌افزاری استفاده کن.'},
+      {f:.98,icon:'🏪',title:'انتشار در استور',desc:'اپ رو به دست کاربر برسون.'},
+    ]
+  },
+
+  devops: {
+    short:'DevOps', icon:'⚙️', color:'#66d9a1',
+    desc:'زیرساخت، اتوماسیون و استقرار',
+    title:'🗺️ نقشه راه DevOps', km:1350,
+    stops:[
+      {f:.04,icon:'🐧',title:'لینوکس و شبکه',desc:'خط فرمان و مفاهیم پایه‌ی شبکه.'},
+      {f:.20,icon:'📜',title:'اسکریپت‌نویسی',desc:'اتوماسیون با Bash یا Python.'},
+      {f:.38,icon:'🔧',title:'Git و CI/CD',desc:'یکپارچه‌سازی و تحویل پیوسته.'},
+      {f:.56,icon:'🐳',title:'داکر و کانتینرها',desc:'بسته‌بندی نرم‌افزار برای هرجا.'},
+      {f:.74,icon:'☸️',title:'ارکستراسیون (Kubernetes)',desc:'مدیریت کانتینرها در مقیاس.'},
+      {f:.90,icon:'📡',title:'مانیتورینگ و لاگ',desc:'سلامت سیستم رو زیر نظر بگیر.'},
+      {f:.98,icon:'☁️',title:'زیرساخت ابری',desc:'IaC و مدیریت سرویس‌های ابری.'},
+    ]
+  },
+
+  gamedev: {
+    short:'بازی‌سازی', icon:'🎮', color:'#ff7a5c',
+    desc:'موتور بازی، گیم‌پلی و انتشار',
+    title:'🗺️ نقشه راه توسعه‌ی بازی', km:1250,
+    stops:[
+      {f:.04,icon:'🎮',title:'انتخاب موتور بازی',desc:'Unity یا Unreal رو شروع کن.'},
+      {f:.22,icon:'💻',title:'برنامه‌نویسی گیم‌پلی',desc:'C# یا C++ برای منطق بازی.'},
+      {f:.40,icon:'🧍',title:'فیزیک و انیمیشن',desc:'حرکت و برخورد رو طبیعی کن.'},
+      {f:.58,icon:'🎨',title:'طراحی سطح و هنر',desc:'دنیای بازی رو بساز.'},
+      {f:.76,icon:'🔊',title:'صدا و جلوه‌ها',desc:'حس و حال بازی رو کامل کن.'},
+      {f:.98,icon:'🏆',title:'انتشار بازی',desc:'بازی رو به دست بازیکن‌ها برسون.'},
+    ]
+  },
+
+  security: {
+    short:'امنیت سایبری', icon:'🛡️', color:'#38bdf8',
+    desc:'دفاع، تست نفوذ و سخت‌سازی سیستم',
+    title:'🗺️ نقشه راه امنیت سایبری', km:1450,
+    stops:[
+      {f:.04,icon:'🌐',title:'شبکه و پروتکل‌ها',desc:'TCP/IP و مفاهیم پایه‌ی شبکه.'},
+      {f:.20,icon:'🐧',title:'سیستم‌عامل‌ها',desc:'لینوکس و ویندوز رو عمیق بشناس.'},
+      {f:.38,icon:'🔎',title:'شناسایی آسیب‌پذیری',desc:'اسکن و تحلیل نقاط ضعف.'},
+      {f:.56,icon:'🛡️',title:'دفاع و سخت‌سازی',desc:'سیستم‌ها رو در برابر حمله مقاوم کن.'},
+      {f:.74,icon:'🕵️',title:'تست نفوذ',desc:'مثل مهاجم فکر کن تا دفاع کنی.'},
+      {f:.98,icon:'📋',title:'گواهینامه و حرفه‌ای‌گری',desc:'مسیر شغلی امنیت رو تثبیت کن.'},
+    ]
+  },
+
+};
+
+/* =====================================================================
+   حالت سراسری — همه‌ی متغیرهای قابل‌تغییر همین اول تعریف می‌شن
+   تا هیچ تابعی قبل از تعریف‌شدنشون صداشون نزنه (باگ نسخه‌ی قبل همین بود)
+   ===================================================================== */
+const NS='http://www.w3.org/2000/svg';
+const fa=n=>Math.round(n).toLocaleString('fa-IR');
+const ROAD_D='M 500 1450 C 250 1380 170 1290 320 1200 C 470 1110 780 1160 810 1020 C 840 880 520 880 380 800 C 240 720 230 590 410 540 C 590 490 790 520 770 390 C 750 260 560 280 500 120';
+
+let STOPS=[];
+let TOTAL_KM=1000;
+let ACTIVE_KEY=null;
+let pT=0,p=0,lastIdx=-1,cardTimer=null,doneFlag=false,t0=null;
+let parts=[];
+let fwParts=[],fwOn=false;
+let stars=[];
+let L=0,road=null;
+
+/* ---------- المان‌ها ---------- */
+const $=id=>document.getElementById(id);
+const landing=$('landing'),stageEl=$('stage'),hud=$('hud'),bar=$('bar'),hint=$('hint'),card=$('card');
+const car=$('car'),carRot=$('carRot'),beam=$('beam'),fx=$('fx'),cel=$('celestial'),clouds=$('clouds');
+const barI=document.querySelector('#bar i'),hPct=$('hPct'),hKm=$('hKm'),hStage=$('hStage'),hTitle=$('hTitle');
+const stopsG=$('stops'),decor=$('decor');
+const sc=$('stars'),sx=sc.getContext('2d');
+const fw=$('fw'),fx2=fw.getContext('2d');
+
+/* ============ ساخت جاده‌ی پایه (ثابت برای همه‌ی گرایش‌ها) ============ */
+function initRoad(){
+  ['roadBase','roadCenter','roadGlow','roadDone','roadLine'].forEach(id=>$(id).setAttribute('d',ROAD_D));
+  road=$('roadDone');
+  L=road.getTotalLength();
+  ['roadGlow','roadDone','roadLine'].forEach(id=>{const e=$(id);e.style.strokeDasharray=L;e.style.strokeDashoffset=L;});
+}
+function initDecor(){
+  [[140,1300],[880,1240],[120,1000],[900,900],[140,700],[880,640],[300,420],[700,220],[160,230]]
+  .forEach(([x,y],i)=>{const s=.8+(i%3)*.2;decor.innerHTML+=`<g transform="translate(${x},${y}) scale(${s})">
+    <rect x="-4" y="-6" width="8" height="16" fill="#5d4037"/>
+    <polygon points="0,-46 18,-8 -18,-8" fill="#1e6b3a"/>
+    <polygon points="0,-32 14,-2 -14,-2" fill="#27854a"/></g>`;});
+  [[620,1320],[240,1080],[640,720],[300,300]]
+  .forEach(([x,y])=>decor.innerHTML+=`<ellipse cx="${x}" cy="${y}" rx="14" ry="9" fill="#3a4150"/>`);
+}
+
+/* ============ ساخت ایستگاه‌های یک گرایش ============ */
+function buildStops(list){
+  stopsG.innerHTML='';
+  STOPS=list.map(s=>({...s}));
+  STOPS.forEach((s,i)=>{
+    const pt=road.getPointAtLength(s.f*L);s.x=pt.x;s.y=pt.y;
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','stop');g.setAttribute('transform',`translate(${pt.x},${pt.y})`);
+    g.innerHTML=`<circle class="ring" r="20"/><circle class="dot" r="15"/>
+      <text class="num" y="5">${fa(i+1)}</text>
+      <g class="flag"><line y1="-14" y2="-48"/><path d="M0,-48 L28,-40 L0,-31 Z"/></g>`;
+    stopsG.appendChild(g);s.el=g;
+  });
+}
+
+/* ============ صفحه‌ی انتخاب گرایش ============ */
+function buildLanding(){
+  const grid=$('trackGrid');
+  Object.keys(PRESETS).forEach(key=>{
+    const t=PRESETS[key];
+    const card=document.createElement('div');
+    card.className='tcard';card.tabIndex=0;card.style.setProperty('--tclr',t.color);
+    card.innerHTML=`<i></i><span class="t-icon">${t.icon}</span>
+      <div class="t-name">${t.short}</div><div class="t-desc">${t.desc}</div>
+      <div class="t-steps">${fa(t.stops.length)} ایستگاه</div>`;
+    const go=()=>startTrack(key);
+    card.addEventListener('click',go);
+    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+    grid.appendChild(card);
+  });
+}
+
+function startTrack(key){
+  ACTIVE_KEY=key;
+  const preset=PRESETS[key];
+  TOTAL_KM=preset.km;
+  document.documentElement.style.setProperty('--acc',preset.color);
+  hTitle.textContent=preset.title;
+  buildStops(preset.stops);
+  lastIdx=-1;doneFlag=false;t0=null;fwOn=false;
+  $('done').classList.remove('on');
+  pT=0;p=0;
+  landing.classList.add('hide');
+  stageEl.classList.add('on');hud.classList.add('on');bar.classList.add('on');
+  scrollTo(0,0);
+  hint.style.opacity=.85;
+  onScroll();
+}
+
+function goHome(){
+  landing.classList.remove('hide');
+  stageEl.classList.remove('on');hud.classList.remove('on');bar.classList.remove('on');
+  $('done').classList.remove('on');fwOn=false;
+  scrollTo(0,0);
+}
+$('hHome').addEventListener('click',goHome);
+$('dHome').addEventListener('click',goHome);
+
+/* ============ ستاره‌ها ============ */
+function sResize(){sc.width=innerWidth;sc.height=innerHeight;
+  stars=Array.from({length:140},()=>({x:Math.random()*sc.width,y:Math.random()*sc.height*.7,r:Math.random()*1.6+.4,t:Math.random()*6}));}
+
+/* ============ پس‌زمینه‌ی صفحه‌ی انتخاب (ستاره‌های آروم) ============ */
+const lbg=$('landingBg'),lctx=lbg.getContext('2d');
+let lstars=[];
+function lResize(){lbg.width=innerWidth;lbg.height=innerHeight;
+  lstars=Array.from({length:90},()=>({x:Math.random()*lbg.width,y:Math.random()*lbg.height,r:Math.random()*1.4+.3,t:Math.random()*6}));}
+function lLoop(now){
+  lctx.clearRect(0,0,lbg.width,lbg.height);
+  lstars.forEach(s=>{s.t+=.015;lctx.globalAlpha=.3+.5*Math.abs(Math.sin(s.t));
+    lctx.fillStyle='#fff';lctx.beginPath();lctx.arc(s.x,s.y,s.r,0,7);lctx.fill();});
+  lctx.globalAlpha=1;
+  requestAnimationFrame(lLoop);
+}
+
+/* ============ آسمان ============ */
+const SKY=[
+ [0.00,'#04060f','#16213e',1,.05],
+ [0.15,'#3a1c5c','#ff8e6e',.4,.35],
+ [0.35,'#3f8fd2','#cfeaff',0,1],
+ [0.60,'#2f80c0','#ffe9b0',0,1],
+ [0.78,'#5b2a86','#ff7e5f',.25,.4],
+ [1.00,'#020108','#1b1f4b',1,.1],
+];
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+function skyAt(pp){let i=0;while(i<SKY.length-2&&pp>SKY[i+1][0])i++;
+  const a=SKY[i],b=SKY[i+1],t=Math.min(1,Math.max(0,(pp-a[0])/(b[0]-a[0])));
+  return{top:mix(hex(a[1]),hex(b[1]),t),bot:mix(hex(a[2]),hex(b[2]),t),
+    stars:a[3]+(b[3]-a[3])*t,day:a[4]+(b[4]-a[4])*t};}
+
+/* ============ رویدادها ============ */
+function onScroll(){const max=document.documentElement.scrollHeight-innerHeight;
+  pT=Math.min(1,Math.max(0,scrollY/max));}
+addEventListener('scroll',onScroll,{passive:true});
+addEventListener('resize',()=>{sResize();lResize();fwResize();});
+
+function showCard(i){const s=STOPS[i];
+  $('cIcon').textContent=s.icon;
+  $('cStage').textContent=`مرحله ${fa(i+1)} از ${fa(STOPS.length)}`;
+  $('cTitle').textContent=s.title;
+  $('cDesc').textContent=s.desc;
+  card.classList.add('show');clearTimeout(cardTimer);
+  cardTimer=setTimeout(()=>card.classList.remove('show'),4600);}
+
+function spawnSmoke(x,y,a){parts.push({x,y,vx:Math.cos(a+Math.PI)*.6+(Math.random()-.5)*.4,
+  vy:Math.sin(a+Math.PI)*.6+(Math.random()-.5)*.4,life:1,r:3+Math.random()*3});}
+
+function fwResize(){fw.width=innerWidth;fw.height=innerHeight}
+function burst(){const x=Math.random()*fw.width,y=Math.random()*fw.height*.5+50,
+  col=`hsl(${Math.random()*360},90%,65%)`;
+  for(let i=0;i<60;i++){const a=Math.random()*Math.PI*2,v=1+Math.random()*4;
+    fwParts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,col});}}
+function finish(){doneFlag=true;$('done').classList.add('on');fwOn=true;
+  const sec=((Date.now()-t0)/1000)|0;
+  $('dStats').textContent=
+    `${fa(TOTAL_KM)} کیلومتر رانندگی · ${fa(sec/60)} دقیقه و ${fa(sec%60)} ثانیه · ${fa(STOPS.length)} ایستگاه`;
+  let n=0;const iv=setInterval(()=>{burst();if(++n>14||!fwOn)clearInterval(iv);},350);}
+$('again').addEventListener('click',()=>{fwOn=false;$('done').classList.remove('on');
+  scrollTo({top:0,behavior:'smooth'});doneFlag=false;lastIdx=-1;t0=null;});
+
+/* ============ حلقه‌ی اصلی ============ */
+let last=performance.now();
+function loop(now){const dt=Math.min(40,now-last);last=now;
+  if(stageEl.classList.contains('on')){
+    p+=(pT-p)*.07;const moving=Math.abs(pT-p)>.0004;
+    if(t0===null&&p>.005)t0=Date.now();
+
+    const sk=skyAt(p);
+    document.documentElement.style.setProperty('--skyT',`rgb(${sk.top})`);
+    document.documentElement.style.setProperty('--skyB',`rgb(${sk.bot})`);
+    sx.clearRect(0,0,sc.width,sc.height);
+    if(sk.stars>.02){stars.forEach(s=>{s.t+=dt/700;
+      sx.globalAlpha=sk.stars*(.4+.6*Math.abs(Math.sin(s.t)));
+      sx.fillStyle='#fff';sx.beginPath();sx.arc(s.x,s.y,s.r,0,7);sx.fill();});sx.globalAlpha=1;}
+    clouds.style.opacity=sk.day;
+    cel.style.left=(12+p*76)+'%';
+    cel.style.top=(78-Math.sin(p*Math.PI)*62)+'%';
+    const night=sk.stars>.5;
+    cel.style.background=night?'radial-gradient(circle at 35% 35%,#fff,#cfd6ff 60%,#9aa6e8)':
+      'radial-gradient(circle at 35% 35%,#fff,#ffd76a 60%,#ffb347)';
+    cel.style.boxShadow=night?'0 0 50px 12px rgba(200,210,255,.35)':'0 0 60px 20px rgba(255,215,106,.45)';
+    $('m1').style.transform=`translateY(${p*50}px)`;
+    $('m2').style.transform=`translateY(${p*110}px)`;
+    $('m3').style.transform=`translateY(${p*190}px)`;
+
+    const off=L*(1-p);
+    ['roadGlow','roadDone','roadLine'].forEach(id=>$(id).style.strokeDashoffset=off);
+
+    const pt=road.getPointAtLength(p*L),pt2=road.getPointAtLength(Math.min(L,p*L+3));
+    const ang=Math.atan2(pt2.y-pt.y,pt2.x-pt.x)*180/Math.PI;
+    const bounce=moving?Math.sin(now/70)*1.4:0;
+    car.setAttribute('transform',`translate(${pt.x},${pt.y+bounce})`);
+    carRot.setAttribute('transform',`rotate(${ang})`);
+    car.classList.toggle('moving',moving);
+    beam.style.opacity=sk.stars>.35?.55:0;
+    if(moving&&Math.random()>.4){const ra=ang*Math.PI/180;
+      spawnSmoke(pt.x+Math.cos(ra+Math.PI)*30,pt.y+Math.sin(ra+Math.PI)*30,ra);}
+
+    fx.innerHTML='';
+    parts=parts.filter(q=>q.life>0);
+    parts.forEach(q=>{q.life-=dt/900;q.x+=q.vx;q.y+=q.vy;q.r+=.12;
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',q.x);c.setAttribute('cy',q.y);c.setAttribute('r',q.r);
+      c.setAttribute('fill','#cfd8dc');c.setAttribute('opacity',q.life*.4);fx.appendChild(c);});
+
+    let cur=0;
+    STOPS.forEach((s,i)=>{const on=p>=s.f-.002;s.el.classList.toggle('on',on);if(on)cur=i;});
+    if(STOPS.length){
+      if(cur!==lastIdx){if(cur>lastIdx)showCard(cur);lastIdx=cur;}
+      hStage.textContent=STOPS[cur].title;
+    }
+
+    barI.style.width=(p*100)+'%';
+    hPct.textContent=fa(p*100)+'٪';
+    hKm.textContent=fa(p*TOTAL_KM)+' کیلومتر';
+    hint.style.opacity=p>.02?0:.85;
+
+    if(p>.995&&!doneFlag)finish();
+  }
+
+  if(fwOn||fwParts.length){fx2.clearRect(0,0,fw.width,fw.height);
+    fwParts=fwParts.filter(q=>q.life>0);
+    fwParts.forEach(q=>{q.life-=dt/1400;q.vy+=.05;q.x+=q.vx;q.y+=q.vy;
+      fx2.globalAlpha=Math.max(0,q.life);fx2.fillStyle=q.col;
+      fx2.beginPath();fx2.arc(q.x,q.y,2.4,0,7);fx2.fill();});fx2.globalAlpha=1;}
+
+  requestAnimationFrame(loop);
+}
+
+/* ============ راه‌اندازی ============ */
+initRoad();
+initDecor();
+buildLanding();
+sResize();lResize();fwResize();
+requestAnimationFrame(lLoop);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
